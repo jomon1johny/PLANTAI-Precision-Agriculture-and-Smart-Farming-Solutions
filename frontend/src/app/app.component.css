@@ -1,0 +1,24 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1 0 auto;
+}
+
+.app-footer {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 32px 24px;
+  border-top: 1px solid var(--border-light);
+  background-color: rgba(0, 0, 0, 0.1);
+  margin-top: 60px;
+}
+
+.app-footer p {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: hsl(var(--text-muted));
+}
