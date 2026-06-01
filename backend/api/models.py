@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class ScanRecord(models.Model):
     CROP_CHOICES = [
@@ -9,6 +10,7 @@ class ScanRecord(models.Model):
         ('other', 'Other'),
     ]
 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scans', null=True, blank=True)
     image = models.ImageField(upload_to='scans/')
     timestamp = models.DateTimeField(auto_now_add=True)
     crop_type = models.CharField(max_length=50, choices=CROP_CHOICES, default='other')

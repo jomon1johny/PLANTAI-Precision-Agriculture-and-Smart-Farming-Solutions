@@ -227,3 +227,12 @@ p {
   background-color: hsl(var(--bg-panel));
   color: hsl(var(--text-primary));
 }
+
+/* Global Disabled Button Styling */
+.btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}

@@ -9,6 +9,9 @@ import { NavbarComponent } from './components/navbar/navbar.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { ScanComponent } from './components/scan/scan.component';
 import { HistoryComponent } from './components/history/history.component';
+import { LoginComponent } from './components/login/login.component';
+import { RegisterComponent } from './components/register/register.component';
+import { authInterceptorProvider } from './interceptors/auth.interceptor';
 
 @NgModule({
   declarations: [
@@ -16,7 +19,9 @@ import { HistoryComponent } from './components/history/history.component';
     NavbarComponent,
     DashboardComponent,
     ScanComponent,
-    HistoryComponent
+    HistoryComponent,
+    LoginComponent,
+    RegisterComponent
   ],
   imports: [
     BrowserModule,
@@ -24,7 +29,9 @@ import { HistoryComponent } from './components/history/history.component';
     HttpClientModule,
     FormsModule
   ],
-  providers: [],
+  providers: [
+    authInterceptorProvider
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

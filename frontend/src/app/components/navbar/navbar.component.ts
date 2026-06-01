@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -9,10 +10,15 @@ import { Component } from '@angular/core';
           <span class="logo-icon">🌿</span>
           <span class="logo-text">PLANT<span class="highlight">AI</span></span>
         </a>
-        <div class="nav-links">
+        <div class="nav-links" *ngIf="authService.isAuthenticated$ | async">
           <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">Dashboard</a>
           <a routerLink="/scan" routerLinkActive="active" class="nav-link highlight-btn">🔍 Scan Leaf</a>
           <a routerLink="/history" routerLinkActive="active" class="nav-link">History Log</a>
+          <div class="user-badge">
+            <span class="badge-icon">👤</span>
+            <span class="badge-name">{{ (authService.currentUser$ | async)?.username }}</span>
+          </div>
+          <button (click)="logout()" class="btn-logout">Logout</button>
         </div>
       </div>
     </nav>
@@ -52,7 +58,7 @@ import { Component } from '@angular/core';
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 20px;
     }
     .nav-link {
       color: hsl(var(--text-secondary));
@@ -85,20 +91,59 @@ import { Component } from '@angular/core';
     .nav-link.highlight-btn.active {
       border: 1px solid hsl(var(--primary-light));
     }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: hsla(0, 0%, 100%, 0.04);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+    .badge-icon {
+      font-size: 0.95rem;
+    }
+    .badge-name {
+      font-weight: 500;
+      color: hsl(var(--text-primary));
+    }
+    .btn-logout {
+      background: transparent;
+      border: 1px solid hsla(350, 80%, 52%, 0.3);
+      color: hsl(var(--danger));
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .btn-logout:hover {
+      background: var(--danger-glow);
+      border-color: hsl(var(--danger));
+    }
 
-    @media (max-width: 768px) {
+    @media (max-width: 992px) {
       .navbar {
         margin: 10px;
         padding: 10px 16px;
       }
       .nav-links {
-        gap: 10px;
+        gap: 8px;
       }
-      .nav-link {
+      .nav-link, .user-badge, .btn-logout {
         font-size: 0.85rem;
         padding: 4px 8px;
       }
     }
   `]
 })
-export class NavbarComponent {}
+export class NavbarComponent {
+  constructor(public authService: AuthService) {}
+
+  logout(): void {
+    this.authService.logout().subscribe();
+  }
+}

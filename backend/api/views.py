@@ -1,17 +1,96 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework import status
+from rest_framework import status, permissions
 from django.db.models import Avg, Count
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 from .models import ScanRecord, InfectedRegion
 from .serializers import ScanRecordSerializer
 from .analyzer import analyze_leaf_image
 
+class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        token, created = Token.objects.get_or_create(user=user)
+
+        return Response({
+            'token': token.key,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            }
+        }, status=status.HTTP_201_CREATED)
+
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=username, password=password)
+        if not user:
+            return Response({'error': 'Invalid username or password'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token, created = Token.objects.get_or_create(user=user)
+
+        return Response({
+            'token': token.key,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            }
+        }, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            request.user.auth_token.delete()
+            return Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        return Response({
+            'id': request.user.id,
+            'username': request.user.username,
+            'email': request.user.email
+        }, status=status.HTTP_200_OK)
+
+
 class ScanUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         crop_type = request.data.get('crop_type', 'other')
@@ -22,6 +101,7 @@ class ScanUploadView(APIView):
 
         # Create temporary ScanRecord to save the image to disk
         scan = ScanRecord(
+            user=request.user,
             image=image_file,
             crop_type=crop_type,
             disease_name='Analyzing...',
@@ -65,8 +145,10 @@ class ScanUploadView(APIView):
 
 
 class ScanHistoryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
-        scans = ScanRecord.objects.all().prefetch_related('infected_regions').order_by('-timestamp')
+        scans = ScanRecord.objects.filter(user=request.user).prefetch_related('infected_regions').order_by('-timestamp')
 
         # Filters
         crop_type = request.query_params.get('crop_type')
@@ -85,7 +167,7 @@ class ScanHistoryView(APIView):
 
     def delete(self, request, pk, *args, **kwargs):
         try:
-            scan = ScanRecord.objects.get(pk=pk)
+            scan = ScanRecord.objects.get(pk=pk, user=request.user)
             scan.delete()
             return Response({'message': 'Scan deleted successfully'}, status=status.HTTP_200_OK)
         except ScanRecord.DoesNotExist:
@@ -93,8 +175,10 @@ class ScanHistoryView(APIView):
 
 
 class DashboardStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
-        scans = ScanRecord.objects.all()
+        scans = ScanRecord.objects.filter(user=request.user)
         total_scans = scans.count()
 
         if total_scans == 0:
